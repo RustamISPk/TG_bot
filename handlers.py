@@ -10,6 +10,7 @@ import keyboards as kb
 
 router = Router()
 rowcount = 0
+posts = []
 
 try:
     connection = pymysql.connect(
@@ -22,6 +23,13 @@ try:
     )
     print("successfully connected")
     print("#" * 20)
+    with connection.cursor() as cursor:
+        select_posts = "select idPosts, Name from posts"
+        cursor.execute(select_posts)
+        posts_raw= cursor.fetchall()
+        for i in range(len(posts_raw)):
+            posts.append(posts_raw[i]['Name'])
+        print(posts)
 except Exception as ex:
     print("Connection refused...")
     print(ex)
@@ -90,9 +98,19 @@ async def add_person_post(message: Message, state: FSMContext):
 @router.message(States.AddPerson.post)
 async def add_person_project(message: Message, state: FSMContext):
     await message.delete()
-    await state.update_data(post=message.text)
-    await state.set_state(States.AddPerson.project)
-    await message.answer('Введите проект, над которым работает сотрудник')
+    post_check = False
+    for i in range(len(posts)):
+        if posts[i] == message.text:
+            post_check = True
+    if post_check == True:
+        await state.update_data(post=message.text)
+        await state.set_state(States.AddPerson.project)
+        await message.answer('Введите проект, над которым работает сотрудник')
+    else:
+        # await message.delete()
+        await message.answer('Не правильно введена должность, введите снова')
+        await state.clear()
+        await state.set_state(States.AddPerson.post)
 
 
 @router.message(States.AddPerson.project)
@@ -565,6 +583,7 @@ async def save_change(callback: CallbackQuery, state: FSMContext):
 
 @router.message(States.FindPerson.edit_surname)
 async def save_change(message: Message, state: FSMContext):
+    trouble_checker = False
     match F.data:
         case 'save_surname':
             States.FindPerson.data_change[States.FindPerson.count]["Surname"] = message.text
@@ -576,8 +595,15 @@ async def save_change(message: Message, state: FSMContext):
             States.FindPerson.data_change[States.FindPerson.count]["Patronymic"] = message.text
             States.FindPerson.change_check['patronymic'] = True
         case 'save_post':
-            States.FindPerson.data_change[States.FindPerson.count]["Post"] = message.text
-            States.FindPerson.change_check['post'] = True
+            post_check = False
+            for i in range(len(posts)):
+                if message.text == posts[i]:
+                    post_check = True
+            if post_check == True:
+                States.FindPerson.data_change[States.FindPerson.count]["Post"] = message.text
+                States.FindPerson.change_check['post'] = True
+            else:
+               trouble_checker = True
         case 'save_project':
             States.FindPerson.data_change[States.FindPerson.count]["Project"] = message.text
             States.FindPerson.change_check['project'] = True
@@ -590,8 +616,12 @@ async def save_change(message: Message, state: FSMContext):
     await state.set_state(States.FindPerson.edit_choice)
     F.data = 'save_change'
     await message.delete()
-    await message.answer('Сохранить?', reply_markup=kb.edit_person_save)
-    await state.clear()
+    if trouble_checker == False:
+        await message.answer('Сохранить?', reply_markup=kb.edit_person_save)
+        await state.clear()
+    else:
+        await message.answer('Неправильно введена должность. Сохранить?', reply_markup=kb.edit_person_save)
+        await state.clear()
 
 
 @router.message(F.text == 'Показать всех сотрудников')
