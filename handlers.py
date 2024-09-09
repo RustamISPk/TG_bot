@@ -15,7 +15,7 @@ posts = []
 try:
     connection = pymysql.connect(
         host=host,
-        port=3307,
+        port=3306,
         user=user,
         password=password,
         database=db_name,
@@ -24,7 +24,7 @@ try:
     print("successfully connected")
     print("#" * 20)
     with connection.cursor() as cursor:
-        select_posts = "select idPosts, Name from posts"
+        select_posts = "select id, Name from posts"
         cursor.execute(select_posts)
         posts_raw = cursor.fetchall()
         for i in range(len(posts_raw)):
