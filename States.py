@@ -33,6 +33,7 @@ class FindPerson(StatesGroup):
     edit_photo = State()
     edit_date_coming = State()
     save = State()
+    delete_check = State()
     data_change = {}
     change_check = {
         'surname': False,

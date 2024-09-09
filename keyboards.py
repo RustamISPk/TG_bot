@@ -77,3 +77,9 @@ edit_person = InlineKeyboardMarkup(inline_keyboard=[
 edit_person_save = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Сохранить', callback_data='save_change')]
 ])
+
+
+delete_person_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Да', callback_data='delete_person_true')],
+    [InlineKeyboardButton(text='Нет', callback_data='delete_person_false')]
+])

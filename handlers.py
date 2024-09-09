@@ -26,7 +26,7 @@ try:
     with connection.cursor() as cursor:
         select_posts = "select idPosts, Name from posts"
         cursor.execute(select_posts)
-        posts_raw= cursor.fetchall()
+        posts_raw = cursor.fetchall()
         for i in range(len(posts_raw)):
             posts.append(posts_raw[i]['Name'])
         print(posts)
@@ -342,7 +342,47 @@ async def find_person_data_checker(callback: CallbackQuery, state: FSMContext):
                                   f' Отчество: {check_data["patronymic"]}.', reply_markup=kb.find_person_find_keyboard)
 
 
-@router.callback_query(lambda call: call.data in ['find', 'show_data', 'next_person', 'back_person', 'delete_person',
+@router.callback_query(lambda call: call.data in ['delete_person_true', 'delete_person_false', 'delete_person'])
+async def delete_person(callback: CallbackQuery, state: FSMContext):
+    if callback.data == 'delete_person':
+        await callback.message.delete()
+        await state.set_state(States.FindPerson.delete_check)
+        await callback.message.answer('Вы точно хотите удалить карточку сотрудника?', reply_markup=kb.delete_person_keyboard)
+
+    if callback.data == 'delete_person_true':
+        with connection.cursor() as cursor:
+            cursor.execute(f'delete from peoples where id '
+                           f'= {States.FindPerson.data_change[States.FindPerson.count]["id"]}')
+            connection.commit()
+            cursor.close()
+            await state.clear()
+            States.FindPerson.count = 0
+            States.FindPerson.change_check = {
+                'surname': False,
+                'name': False,
+                'patronymic': False,
+                'post': False,
+                'project': False,
+                'photo': False,
+                'date_coming': False
+            }
+            await callback.message.delete()
+            await callback.message.answer('Выберите действие', reply_markup=kb.reply_keyboard)
+    if callback.data == 'delete_person_false':
+        States.FindPerson.count = 0
+        States.FindPerson.change_check = {
+            'surname': False,
+            'name': False,
+            'patronymic': False,
+            'post': False,
+            'project': False,
+            'photo': False,
+            'date_coming': False
+        }
+        await state.clear()
+        await callback.message.answer('Выберите действие', reply_markup=kb.reply_keyboard)
+
+@router.callback_query(lambda call: call.data in ['find', 'show_data', 'next_person', 'back_person',
                                                   'main_menu'])
 async def find_person_edit(callback: CallbackQuery, state: FSMContext):
     # await callback.message.delete()
@@ -374,25 +414,7 @@ async def find_person_edit(callback: CallbackQuery, state: FSMContext):
             States.FindPerson.count -= 1
             # await callback.message.delete()
 
-    if callback.data == 'delete_person':
-        with connection.cursor() as cursor:
-            cursor.execute(f'delete from peoples where id '
-                           f'= {States.FindPerson.data_change[States.FindPerson.count]["id"]}')
-            connection.commit()
-            cursor.close()
-            await state.clear()
-            States.FindPerson.count = 0
-            States.FindPerson.change_check = {
-                'surname': False,
-                'name': False,
-                'patronymic': False,
-                'post': False,
-                'project': False,
-                'photo': False,
-                'date_coming': False
-            }
-            # await callback.message.delete()
-            await callback.message.answer('Выберите действие', reply_markup=kb.reply_keyboard)
+
 
     if callback.data == 'find':
         data = await state.get_data()
