@@ -13,3 +13,9 @@ create table if not exists peoples
     Date_Coming varchar(100),
     primary key(id)
 );
+create table if not exists posts
+(
+	id int not null auto_increment,
+    Name varchar(100) not null,
+    primary key(id)
+);
